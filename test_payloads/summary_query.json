@@ -1,0 +1,9 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "What tools are needed for remote work?"
+    }
+  ],
+  "query": "tools for remote work"
+} 
