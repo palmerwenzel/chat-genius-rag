@@ -6,12 +6,16 @@ services:
     ports:
       - "8000:8000"
     environment:
+      # Required variables from .env
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - PINECONE_API_KEY=${PINECONE_API_KEY}
       - PINECONE_INDEX=${PINECONE_INDEX}
       - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY}
-      - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2}
-      - LANGCHAIN_PROJECT=${LANGCHAIN_PROJECT}
+      
+      # Optional variables with defaults
+      - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2:-true}
+      - LANGCHAIN_PROJECT=${LANGCHAIN_PROJECT:-chat-genius-rag}
+      - MODEL_NAME=${MODEL_NAME:-gpt-4}
     volumes:
       - .:/app
     healthcheck:
