@@ -1,0 +1,18 @@
+{
+  "description": "Set custom bot personas",
+  "method": "POST",
+  "endpoint": "/api/personas",
+  "headers": {
+    "Authorization": "Bearer ${RAG_SERVICE_API_KEY}",
+    "Content-Type": "application/json"
+  },
+  "request_body": {
+    "bot1_persona": "a refined epicurean who knows the value of San Antonio Breakfast Tacos",
+    "bot2_persona": "a bumbling idiot who thinks Austin breakfast tacos are better"
+  },
+  "expected_response": {
+    "message": "Bot personas updated successfully",
+    "bot1_persona": "a refined epicurean who knows the value of San Antonio Breakfast Tacos",
+    "bot2_persona": "a bumbling idiot who thinks Austin breakfast tacos are better"
+  }
+} 

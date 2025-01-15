@@ -1,9 +1,15 @@
 {
-  "messages": [
-    {
-      "role": "user",
-      "content": "What tools are needed for remote work?"
-    }
-  ],
-  "query": "tools for remote work"
+  "description": "Generate summary of indexed messages with optional query focus",
+  "method": "POST",
+  "endpoint": "/api/summary",
+  "headers": {
+    "Authorization": "Bearer ${RAG_SERVICE_API_KEY}",
+    "Content-Type": "application/json"
+  },
+  "request_body": {
+    "query": "Focus on technical implementation details"
+  },
+  "expected_response": {
+    "summary": "The discussion covered various technical aspects..."
+  }
 } 

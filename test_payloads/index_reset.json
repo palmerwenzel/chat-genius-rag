@@ -1,0 +1,12 @@
+{
+  "description": "Reset Pinecone vector store index",
+  "method": "POST",
+  "endpoint": "/api/index/reset",
+  "headers": {
+    "Authorization": "Bearer ${RAG_SERVICE_API_KEY}"
+  },
+  "expected_response": {
+    "status": "success",
+    "message": "Successfully reset index"
+  }
+} 

@@ -53,12 +53,13 @@ chatbot = ChatbotConversation(
     bot2_persona=os.getenv("BOT2_PERSONA", DEFAULT_BOT2_PERSONA)
 )
 
+# Initialize RAG pipeline
+rag = RAGPipeline(model_name="gpt-3.5-turbo")
+
 # Request/Response models
 class SeedConversationRequest(BaseModel):
     prompt: str
     num_turns: int = 3
-    bot1_persona: Optional[str] = None
-    bot2_persona: Optional[str] = None
 
 class Message(BaseModel):
     role: str
@@ -134,9 +135,7 @@ async def seed_conversation(request: SeedConversationRequest):
     try:
         conversation = chatbot.generate_conversation(
             initial_prompt=request.prompt,
-            num_turns=request.num_turns,
-            bot1_persona=request.bot1_persona,
-            bot2_persona=request.bot2_persona
+            num_turns=request.num_turns
         )
         messages = [Message.from_dict(msg) for msg in conversation]
         return SeedConversationResponse(messages=messages)

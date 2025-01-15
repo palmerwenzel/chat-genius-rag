@@ -1,0 +1,13 @@
+{
+  "description": "Get current bot personas",
+  "method": "GET",
+  "endpoint": "/api/personas",
+  "headers": {
+    "Authorization": "Bearer ${RAG_SERVICE_API_KEY}"
+  },
+  "expected_response": {
+    "message": "Current bot personas",
+    "bot1_persona": "a technical expert who explains concepts clearly and thoroughly",
+    "bot2_persona": "a practical problem-solver who focuses on real-world applications"
+  }
+} 

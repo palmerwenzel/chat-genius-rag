@@ -1,0 +1,25 @@
+{
+  "description": "Seed a conversation between two AI chatbots",
+  "method": "POST",
+  "endpoint": "/api/seed",
+  "headers": {
+    "Authorization": "Bearer ${RAG_SERVICE_API_KEY}",
+    "Content-Type": "application/json"
+  },
+  "request_body": {
+    "prompt": "Discuss the pros and cons of different JavaScript frameworks",
+    "num_turns": 3
+  },
+  "expected_response": {
+    "messages": [
+      {
+        "role": "assistant",
+        "content": "Let me break down the major JavaScript frameworks...",
+        "metadata": {
+          "bot_number": 1,
+          "persona": "a technical expert who explains concepts clearly and thoroughly"
+        }
+      }
+    ]
+  }
+} 

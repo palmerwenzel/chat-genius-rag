@@ -1,27 +1,35 @@
 {
-  "messages": [
-    {
-      "role": "user",
-      "content": "Let's discuss the future of remote work and its impact on company culture",
-      "metadata": {
-        "type": "user_prompt"
+  "description": "Index messages in Pinecone vector store",
+  "method": "POST",
+  "endpoint": "/api/index",
+  "headers": {
+    "Authorization": "Bearer ${RAG_SERVICE_API_KEY}",
+    "Content-Type": "application/json"
+  },
+  "request_body": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "What's the best way to implement authentication in a Next.js app?",
+        "metadata": {
+          "type": "text",
+          "sender": "Alice",
+          "timestamp": "2024-01-14T12:00:00Z"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": "For Next.js authentication, I recommend using NextAuth.js or Supabase Auth...",
+        "metadata": {
+          "type": "text",
+          "sender": "Bot",
+          "timestamp": "2024-01-14T12:00:05Z"
+        }
       }
-    },
-    {
-      "role": "assistant",
-      "content": "From a technical perspective, remote work has been made possible by advancements in cloud computing, collaboration tools, and project management software. These tools facilitate communication and team collaboration regardless of physical location.",
-      "metadata": {
-        "type": "bot_message",
-        "personality": "tech_expert"
-      }
-    },
-    {
-      "role": "assistant",
-      "content": "From a product management perspective, we need to focus on creating tools and solutions that enhance remote work experience and support company culture.",
-      "metadata": {
-        "type": "bot_message",
-        "personality": "product_manager"
-      }
-    }
-  ]
+    ]
+  },
+  "expected_response": {
+    "status": "success",
+    "message": "Messages indexed successfully"
+  }
 } 
