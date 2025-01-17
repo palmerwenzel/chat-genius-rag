@@ -1,5 +1,5 @@
 {
-  "description": "Seed a conversation between two AI chatbots",
+  "description": "Seed a conversation between AI chatbots",
   "method": "POST",
   "endpoint": "/api/seed",
   "headers": {
@@ -8,7 +8,9 @@
   },
   "request_body": {
     "prompt": "Discuss the pros and cons of different JavaScript frameworks",
-    "num_turns": 3
+    "num_turns": 3,
+    "bots": [1, 2, 3],
+    "channelId": "test-channel"
   },
   "expected_response": {
     "messages": [
@@ -17,7 +19,26 @@
         "content": "Let me break down the major JavaScript frameworks...",
         "metadata": {
           "bot_number": 1,
+          "bot_name": "TechBot",
           "persona": "a technical expert who explains concepts clearly and thoroughly"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": "From a product perspective, we should consider...",
+        "metadata": {
+          "bot_number": 2,
+          "bot_name": "ProductBot",
+          "persona": "a product manager focused on business value"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": "Looking at the UX implications...",
+        "metadata": {
+          "bot_number": 3,
+          "bot_name": "DesignBot",
+          "persona": "a UX designer focused on user experience"
         }
       }
     ]

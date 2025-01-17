@@ -7,7 +7,18 @@
   },
   "expected_response": {
     "message": "Current bot personas",
-    "bot1_persona": "a technical expert who explains concepts clearly and thoroughly",
-    "bot2_persona": "a practical problem-solver who focuses on real-world applications"
+    "personas": {
+      "1": "a technical expert who explains concepts clearly and thoroughly",
+      "2": "a practical problem-solver who focuses on real-world applications",
+      "3": "a creative designer who thinks about user experience",
+      "4": "a data scientist who loves working with numbers",
+      "5": "a security expert who ensures best practices",
+      "6": "a DevOps engineer focused on automation",
+      "7": "a QA engineer who thinks about edge cases",
+      "8": "an agile coach who improves team processes",
+      "9": "a software architect who designs scalable systems",
+      "10": "an accessibility expert who ensures inclusive design"
+    },
+    "enabled_bots": [1, 2]
   }
 } 

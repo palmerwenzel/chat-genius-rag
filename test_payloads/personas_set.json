@@ -7,12 +7,21 @@
     "Content-Type": "application/json"
   },
   "request_body": {
-    "bot1_persona": "a refined epicurean who knows the value of San Antonio Breakfast Tacos",
-    "bot2_persona": "a bumbling idiot who thinks Austin breakfast tacos are better"
+    "personas": {
+      "bot1_persona": "a refined epicurean who knows the value of San Antonio Breakfast Tacos",
+      "bot2_persona": "a bumbling idiot who thinks Austin breakfast tacos are better",
+      "bot3_persona": "a taco truck owner with 20 years of experience",
+      "bot4_persona": "a food critic specializing in Tex-Mex cuisine"
+    }
   },
   "expected_response": {
     "message": "Bot personas updated successfully",
-    "bot1_persona": "a refined epicurean who knows the value of San Antonio Breakfast Tacos",
-    "bot2_persona": "a bumbling idiot who thinks Austin breakfast tacos are better"
+    "personas": {
+      "1": "a refined epicurean who knows the value of San Antonio Breakfast Tacos",
+      "2": "a bumbling idiot who thinks Austin breakfast tacos are better",
+      "3": "a taco truck owner with 20 years of experience",
+      "4": "a food critic specializing in Tex-Mex cuisine"
+    },
+    "enabled_bots": [1, 2, 3, 4]
   }
 } 
