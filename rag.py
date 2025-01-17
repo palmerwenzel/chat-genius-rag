@@ -3,7 +3,7 @@ from langchain_pinecone import PineconeVectorStore
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pinecone import Pinecone as PineconeClient
 import os
 import logging
@@ -40,22 +40,31 @@ class RAGPipeline:
         logger.info(f"Connected to Pinecone index: {self.index_name}")
     
     def index_messages(self, messages: List[Dict[str, Any]]) -> None:
-        """Index chat messages into Pinecone."""
+        """Index chat messages into Pinecone with comprehensive metadata."""
         try:
             logger.info(f"Processing {len(messages)} messages for indexing")
             
-            # Convert messages to documents
             documents = []
             for msg in messages:
                 logger.info(f"Converting message from {msg['role']} to document")
-                # Only index assistant messages and human messages
                 if msg["role"] in ["assistant", "human"]:
+                    # Extract and validate crucial metadata
+                    metadata = {
+                        "role": msg["role"],
+                        "channel_id": msg.get("channel_id"),
+                        "group_id": msg.get("group_id"),
+                        "sender_id": msg.get("sender_id"),
+                        "sender_name": msg.get("metadata", {}).get("sender_name"),
+                        "timestamp": msg.get("created_at"),
+                        **msg.get("metadata", {})  # Preserve any additional metadata
+                    }
+                    
+                    # Remove None values to keep metadata clean
+                    metadata = {k: v for k, v in metadata.items() if v is not None}
+                    
                     doc = Document(
                         page_content=msg["content"],
-                        metadata={
-                            "role": msg["role"],
-                            **msg.get("metadata", {})
-                        }
+                        metadata=metadata
                     )
                     documents.append(doc)
             
@@ -76,11 +85,22 @@ class RAGPipeline:
             logger.error(f"Error indexing messages: {str(e)}", exc_info=True)
             raise
     
-    def search_similar(self, query: str, k: int = 5) -> List[Document]:
-        """Search for similar messages using the query."""
+    def search_similar(
+        self, 
+        query: str, 
+        filter_metadata: Optional[Dict[str, Any]] = None,
+        k: int = 5
+    ) -> List[Document]:
+        """Search for similar messages with flexible metadata filtering."""
         try:
             logger.info(f"Searching for documents similar to query: {query}")
-            retriever = self.vectorstore.as_retriever(search_kwargs={"k": k})
+            logger.info(f"Applying filters: {filter_metadata}")
+            
+            search_kwargs = {"k": k}
+            if filter_metadata:
+                search_kwargs["filter"] = filter_metadata
+                
+            retriever = self.vectorstore.as_retriever(search_kwargs=search_kwargs)
             results = retriever.invoke(query)
             logger.info(f"Found {len(results)} similar documents")
             return results
@@ -88,17 +108,27 @@ class RAGPipeline:
             logger.error(f"Error searching similar messages: {str(e)}", exc_info=True)
             raise
     
-    def generate_summary(self, messages: List[Dict[str, Any]], query: str = None) -> str:
-        """Generate a summary of the chat messages."""
+    def generate_summary(
+        self, 
+        messages: List[Dict[str, Any]], 
+        query: str = None,
+        filter_metadata: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """Generate a summary with flexible context filtering."""
         try:
             logger.info("Starting summary generation")
-            # First, get relevant context if query is provided
+            logger.info(f"Using filters: {filter_metadata}")
+            
+            # Get relevant context if query is provided
             context = ""
             if query:
-                similar_docs = self.search_similar(query)
+                similar_docs = self.search_similar(
+                    query, 
+                    filter_metadata=filter_metadata
+                )
                 context = "\n".join(doc.page_content for doc in similar_docs)
             
-            # Create summary prompt
+            # Create summary prompt with metadata context
             summary_prompt = ChatPromptTemplate.from_messages([
                 ("system", """You are a helpful AI assistant that generates concise but informative 
                  summaries of chat conversations. Focus on key points, decisions, and outcomes."""),
@@ -122,7 +152,7 @@ class RAGPipeline:
             return summary_response.content
         except Exception as e:
             logger.error(f"Error generating summary: {str(e)}", exc_info=True)
-            raise 
+            raise
     
     async def reset_index(self) -> None:
         """Reset the vector store by deleting all vectors."""
