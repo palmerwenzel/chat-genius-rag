@@ -28,97 +28,98 @@ BOT_PERSONAS = {
     BOT_IDS["SYSTEM"]: {
         "name": "System",
         "role": "System coordinator and administrator",
-        "persona": """You are the System Bot, responsible for managing and coordinating the chat system. 
-        You handle administrative tasks, provide system notifications, and ensure smooth operation of the platform. 
-        You communicate in a clear, authoritative, but friendly manner.""",
+        "persona": "You are System Bot, a clear and authoritative coordinator who manages the chat system.",
         "temperature": 0.3
     },
     BOT_IDS["BOT_1"]: {
         "name": "TechBot",
         "role": "Technical Expert",
-        "persona": """You are TechBot, a technical expert with deep knowledge of software development, 
-        cloud computing, and modern tech stacks. You are precise, analytical, and always back up your points 
-        with technical details. You communicate professionally but can occasionally use tech humor.""",
+        "persona": "You are TechBot, a precise technical expert who explains software concepts with detailed examples.",
         "temperature": 0.7
     },
     BOT_IDS["BOT_2"]: {
         "name": "ProductBot",
         "role": "Product Manager",
-        "persona": """You are ProductBot, an experienced product manager focused on user experience, 
-        business value, and market trends. You excel at breaking down complex topics into user stories 
-        and business cases. You're strategic and always consider the bigger picture.""",
+        "persona": "You are ProductBot, a strategic product manager who focuses on user value and market fit.",
         "temperature": 0.7
     },
     BOT_IDS["BOT_3"]: {
         "name": "DesignBot",
         "role": "UX/UI Designer",
-        "persona": """You are DesignBot, a creative UX/UI designer with expertise in user-centered design, 
-        accessibility, and modern design systems. You focus on creating intuitive and beautiful user experiences. 
-        You communicate visually and emphasize user needs.""",
+        "persona": "You are DesignBot, a UX/UI designer who creates intuitive and accessible experiences.",
         "temperature": 0.8
     },
     BOT_IDS["BOT_4"]: {
         "name": "DataBot",
         "role": "Data Scientist",
-        "persona": """You are DataBot, a data scientist specializing in analytics, machine learning, 
-        and data visualization. You love working with data and finding insights. You communicate with 
-        precision and always back your statements with data.""",
+        "persona": "You are DataBot, an analytical data scientist who backs statements with evidence.",
         "temperature": 0.6
     },
     BOT_IDS["BOT_5"]: {
         "name": "SecurityBot",
         "role": "Security Expert",
-        "persona": """You are SecurityBot, a cybersecurity expert focused on application security, 
-        best practices, and threat prevention. You're detail-oriented and take security seriously, 
-        but can explain complex concepts clearly.""",
+        "persona": "You are SecurityBot, a security expert who emphasizes best practices and threat prevention.",
         "temperature": 0.5
     },
     BOT_IDS["BOT_6"]: {
         "name": "DevOpsBot",
         "role": "DevOps Engineer",
-        "persona": """You are DevOpsBot, a DevOps engineer specializing in CI/CD, infrastructure, 
-        and cloud architecture. You focus on automation, reliability, and scalability. You're practical 
-        and solution-oriented.""",
+        "persona": "You are DevOpsBot, a practical DevOps engineer focused on automation and reliability.",
         "temperature": 0.6
     },
     BOT_IDS["BOT_7"]: {
         "name": "TestBot",
         "role": "QA Engineer",
-        "persona": """You are TestBot, a quality assurance engineer focused on testing methodologies, 
-        test automation, and quality processes. You're thorough and detail-oriented, always thinking 
-        about edge cases and user scenarios.""",
+        "persona": "You are TestBot, a thorough QA engineer who considers edge cases and user scenarios.",
         "temperature": 0.6
     },
     BOT_IDS["BOT_8"]: {
         "name": "AgileBot",
         "role": "Agile Coach",
-        "persona": """You are AgileBot, an agile methodology expert specializing in Scrum, Kanban, 
-        and team processes. You focus on team efficiency and continuous improvement. You're collaborative 
-        and process-oriented.""",
+        "persona": "You are AgileBot, an agile coach who improves team efficiency and processes.",
         "temperature": 0.7
     },
     BOT_IDS["BOT_9"]: {
         "name": "ArchitectBot",
         "role": "Software Architect",
-        "persona": """You are ArchitectBot, a software architect with expertise in system design, 
-        scalability, and technical decision-making. You focus on high-level architecture and best practices. 
-        You're strategic and forward-thinking.""",
+        "persona": "You are ArchitectBot, a strategic architect who designs scalable systems.",
         "temperature": 0.6
     },
     BOT_IDS["BOT_10"]: {
         "name": "AccessibilityBot",
         "role": "Accessibility Expert",
-        "persona": """You are AccessibilityBot, an accessibility specialist focused on inclusive design, 
-        WCAG guidelines, and assistive technologies. You advocate for all users and ensure applications 
-        are accessible to everyone.""",
+        "persona": "You are AccessibilityBot, an advocate for inclusive design and WCAG compliance.",
         "temperature": 0.7
     }
 }
 
 class ChatbotConversation:
     def __init__(self, model_name: str = "gpt-4"):
+        """Initialize the chatbot conversation handler.
+        
+        Args:
+            model_name (str): The name of the LLM model to use
+        """
         self.llm = ChatOpenAI(model_name=model_name)
         self.bot_personas = BOT_PERSONAS
+        
+    def get_bot_id_by_name(self, bot_name: str) -> Optional[str]:
+        """Get a bot's ID by its name."""
+        for bot_id, persona in self.bot_personas.items():
+            if persona["name"].lower() == bot_name.lower():
+                return bot_id
+        return None
+
+    def list_available_bots(self) -> List[Dict[str, str]]:
+        """Return a list of available bots with their names and roles."""
+        return [
+            {
+                "id": bot_id,
+                "name": info["name"],
+                "role": info["role"]
+            }
+            for bot_id, info in self.bot_personas.items()
+        ]
 
     def get_bot_persona(self, bot_id: str) -> Dict[str, Any]:
         """Get the persona details for a specific bot."""
@@ -135,34 +136,76 @@ class ChatbotConversation:
         temperature: Optional[float] = None
     ) -> Dict[str, Any]:
         """Generate a response from a specific bot."""
-        bot_info = self.bot_personas.get(bot_id)
-        if not bot_info:
-            raise ValueError(f"Invalid bot ID: {bot_id}")
+        if not self.validate_bot_id(bot_id):
+            raise ValueError(f"Invalid bot ID: {bot_id}. Available bots: {', '.join(self.list_available_bots())}")
 
-        # Use bot's temperature if not specified
+        bot_info = self.bot_personas[bot_id]
         temp = temperature if temperature is not None else bot_info.get("temperature", 0.7)
         
         # Create a new LLM instance with the bot's temperature
         llm = ChatOpenAI(temperature=temp, model_name=self.llm.model_name)
 
-        # Add bot's persona to system message
         system_message = {
             "role": "system",
             "content": f"""You are {bot_info['name']}, {bot_info['role']}. {bot_info['persona']}
             Respond in character, maintaining your unique perspective and expertise."""
         }
 
-        # Generate response
-        response = llm.invoke(
-            [system_message, *messages]
-        )
-
-        return {
-            "role": "assistant",
-            "content": response.content,
-            "metadata": {
-                "bot_id": bot_id,
-                "bot_name": bot_info["name"],
-                "bot_role": bot_info["role"]
+        try:
+            response = llm.invoke([system_message, *messages])
+            
+            return {
+                "role": "assistant",
+                "content": response.content,
+                "metadata": {
+                    "bot_id": bot_id,
+                    "bot_name": bot_info["name"],
+                    "bot_role": bot_info["role"]
+                }
             }
-        } 
+        except Exception as e:
+            logger.error(f"Error generating response for bot {bot_id}: {str(e)}")
+            raise
+
+    def generate_conversation(
+        self,
+        initial_prompt: str,
+        num_turns: int = 3,
+        bot_ids: Optional[List[str]] = None
+    ) -> List[Dict[str, Any]]:
+        """Generate a multi-turn conversation between bots.
+        
+        Args:
+            initial_prompt: The prompt to start the conversation
+            num_turns: Number of conversation turns
+            bot_ids: List of bot IDs to participate. If None, randomly selects from available bots
+        """
+        if not bot_ids:
+            # Default to TechBot and ProductBot if no bots specified
+            bot_ids = [BOT_IDS["BOT_1"], BOT_IDS["BOT_2"]]
+        
+        conversation = [{
+            "role": "user",
+            "content": initial_prompt
+        }]
+        
+        for i in range(num_turns):
+            bot_id = bot_ids[i % len(bot_ids)]
+            response = self.generate_response(
+                bot_id=bot_id,
+                messages=conversation
+            )
+            conversation.append(response)
+            
+        return conversation
+
+    def validate_bot_id(self, bot_id: str) -> bool:
+        """Validate if a bot ID exists."""
+        return bot_id in self.bot_personas 
+
+    def update_bot_persona(self, bot_id: str, persona: str) -> None:
+        """Update a bot's persona."""
+        if not self.validate_bot_id(bot_id):
+            raise ValueError(f"Invalid bot ID: {bot_id}")
+        
+        self.bot_personas[bot_id]["persona"] = persona 

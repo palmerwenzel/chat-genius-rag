@@ -47,11 +47,7 @@ if missing_vars:
 DEFAULT_BOT1_PERSONA = "a technical expert who explains concepts clearly and thoroughly"
 DEFAULT_BOT2_PERSONA = "a practical problem-solver who focuses on real-world applications"
 
-chatbot = ChatbotConversation(
-    model_name="gpt-3.5-turbo",
-    bot1_persona=os.getenv("BOT1_PERSONA", DEFAULT_BOT1_PERSONA),
-    bot2_persona=os.getenv("BOT2_PERSONA", DEFAULT_BOT2_PERSONA)
-)
+chatbot = ChatbotConversation(model_name="gpt-4")
 
 # Initialize RAG pipeline
 rag = RAGPipeline(model_name="gpt-3.5-turbo")
@@ -60,6 +56,7 @@ rag = RAGPipeline(model_name="gpt-3.5-turbo")
 class SeedConversationRequest(BaseModel):
     prompt: str
     num_turns: int = 3
+    bot_ids: Optional[List[str]] = None  # Optional list of bot UUIDs to participate
 
 class Message(BaseModel):
     role: str
@@ -100,6 +97,28 @@ class ResetIndexResponse(BaseModel):
     status: str
     message: str
 
+class ChatRequest(BaseModel):
+    bot_id: str
+    messages: List[Message]
+    temperature: Optional[float] = None
+
+class ChatResponse(BaseModel):
+    message: Message
+
+class ListBotsResponse(BaseModel):
+    bots: List[Dict[str, str]]
+
+class BotPersona(BaseModel):
+    """Model for a single bot's persona details"""
+    name: str
+    role: str
+    persona: str
+    temperature: float
+
+class GetPersonasResponse(BaseModel):
+    """Response model for getting bot personas"""
+    personas: Dict[str, BotPersona]
+
 api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
 
 async def verify_api_key(api_key: Optional[str] = Depends(api_key_header)):
@@ -131,14 +150,30 @@ async def health_check():
 
 # Chatbot seeding endpoint
 @app.post("/api/seed", response_model=SeedConversationResponse)
-async def seed_conversation(request: SeedConversationRequest):
+async def seed_conversation(
+    request: SeedConversationRequest,
+    api_key: str = Depends(verify_api_key)
+):
+    """Generate a seeded conversation between bots."""
     try:
+        # Validate bot IDs if provided
+        if request.bot_ids:
+            for bot_id in request.bot_ids:
+                if not chatbot.validate_bot_id(bot_id):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid bot ID: {bot_id}"
+                    )
+
         conversation = chatbot.generate_conversation(
             initial_prompt=request.prompt,
-            num_turns=request.num_turns
+            num_turns=request.num_turns,
+            bot_ids=request.bot_ids
         )
         messages = [Message.from_dict(msg) for msg in conversation]
         return SeedConversationResponse(messages=messages)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -169,35 +204,30 @@ async def generate_summary(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/personas", response_model=SetPersonasResponse)
-async def set_personas(
-    request: SetPersonasRequest,
-    api_key: str = Depends(verify_api_key)
-):
-    """Set the personas for the two chatbots."""
+@app.get("/api/bots", response_model=ListBotsResponse)
+async def list_bots(api_key: str = Depends(verify_api_key)):
+    """Get a list of all available bots."""
     try:
-        chatbot.set_personas(
-            bot1_persona=request.bot1_persona,
-            bot2_persona=request.bot2_persona
-        )
-        return SetPersonasResponse(
-            message="Bot personas updated successfully",
-            bot1_persona=request.bot1_persona,
-            bot2_persona=request.bot2_persona
-        )
+        bots = chatbot.list_available_bots()
+        return ListBotsResponse(bots=bots)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/personas", response_model=SetPersonasResponse)
-async def get_personas(api_key: str = Depends(verify_api_key)):
-    """Get the current personas for the two chatbots."""
+@app.post("/api/chat", response_model=ChatResponse)
+async def generate_chat_response(
+    request: ChatRequest,
+    api_key: str = Depends(verify_api_key)
+):
+    """Generate a response from a specific bot."""
     try:
-        personas = chatbot.get_personas()
-        return SetPersonasResponse(
-            message="Current bot personas",
-            bot1_persona=personas["bot1"],
-            bot2_persona=personas["bot2"]
+        response = chatbot.generate_response(
+            bot_id=request.bot_id,
+            messages=[msg.dict() for msg in request.messages],
+            temperature=request.temperature
         )
+        return ChatResponse(message=Message.from_dict(response))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -211,4 +241,88 @@ async def reset_index(api_key: str = Depends(verify_api_key)):
             message="Successfully reset index"
         )
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/personas", response_model=GetPersonasResponse)
+async def get_personas(
+    bot_id: Optional[str] = None,
+    api_key: str = Depends(verify_api_key)
+):
+    """Get bot personas."""
+    try:
+        if bot_id:
+            # Get specific bot's persona
+            if not chatbot.validate_bot_id(bot_id):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid bot ID: {bot_id}"
+                )
+            info = chatbot.get_bot_persona(bot_id)
+            personas = {
+                bot_id: BotPersona(
+                    name=info["name"],
+                    role=info["role"],
+                    persona=info["persona"],
+                    temperature=info["temperature"]
+                )
+            }
+        else:
+            # Get all personas
+            personas = {
+                bot_id: BotPersona(
+                    name=info["name"],
+                    role=info["role"],
+                    persona=info["persona"],
+                    temperature=info["temperature"]
+                )
+                for bot_id, info in chatbot.get_all_personas().items()
+            }
+        
+        return GetPersonasResponse(personas=personas)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting personas: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class UpdatePersonaRequest(BaseModel):
+    """Request model for updating bot personas"""
+    personas: Dict[str, str]
+
+class UpdatePersonaResponse(BaseModel):
+    """Response model for updating bot personas"""
+    message: str
+    personas: Dict[str, str]
+
+@app.post("/api/personas", response_model=UpdatePersonaResponse)
+async def update_personas(
+    request: UpdatePersonaRequest,
+    api_key: str = Depends(verify_api_key)
+):
+    """Update multiple bot personas at once."""
+    try:
+        updated_personas = {}
+        for key, persona in request.personas.items():
+            # Extract bot ID from key (e.g., "bot1_persona" -> "1")
+            bot_id = key.replace("bot", "").replace("_persona", "")
+            
+            if not chatbot.validate_bot_id(bot_id):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid bot ID in key: {key}"
+                )
+            
+            # Update the persona
+            bot_info = chatbot.get_bot_persona(bot_id)
+            bot_info["persona"] = persona
+            updated_personas[key] = persona
+        
+        return UpdatePersonaResponse(
+            message="Successfully updated bot personas",
+            personas=updated_personas
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating personas: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e)) 
